@@ -1,5 +1,7 @@
 # Genomics Kit
 
-## Usage
+## Content
 
-TODO
+1. Preprocessing ...
+2. Validation ...
+3. Notebooks ... 
