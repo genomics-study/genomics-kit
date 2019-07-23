@@ -83,19 +83,24 @@ def map_sol(value: str):
         return np.nan
 
 
-def read_dfs():
+def read_dfs(nan_fill: int = None):
     df_phen = pd.read_csv('ucn2aghphen.txt', sep='  |\t', header=0, engine='python', index_col=False)
-    df_phen = df_phen.drop(['"elem"', '"numer"', '"X"',
-                            '"wyksztalcenie"', '"lata"', '"zawod"', '"przychod"', '"dyscyplina"'], axis=1)
+    df_phen = df_phen.drop(['"elem"', '"numer"', '"X"', '"wyksztalcenie"', '"lata"', '"zawod"', '"przychod"',
+                            '"dyscyplina"', '"tryb_pracy"', '"BADANIA_LAB"', '"ABPM"', '"Complior"',
+                            '"HRV"', '"ECHO.serca"', '"Sphigmocor"', '"czestosc"', '"czestosc"', '"nie_pali"',
+                            '"Paczkolata"', '"ciaze"', '"porody"', '"wiek_meno"', '"ile_min"'], axis=1)
 
     df_phen['"cywilny"'] = df_phen['"cywilny"'].map(map_cywilny)
     df_phen['"praca"'] = df_phen['"praca"'].map(map_praca)
     df_phen['"sol"'] = df_phen['"sol"'].map(map_sol)
-    df_phen['"ile_min"'] = df_phen['"ile_min"'].map(map_lie_min)
+    # df_phen['"ile_min"'] = df_phen['"ile_min"'].map(map_lie_min)
     df_phen['"akt_fiz"'] = df_phen['"akt_fiz"'].map(map_akt_fiz)
-    df_phen['"tryb_pracy"'] = df_phen['"tryb_pracy"'].map(map_sol)
+    # df_phen['"tryb_pracy"'] = df_phen['"tryb_pracy"'].map(map_sol)
     df_phen.loc[:, df_phen.dtypes == object] = df_phen.loc[:, df_phen.dtypes == object].applymap(map_fl)
 
     df_xp = pd.read_csv('ucn2aghxp.txt', sep='  |\t', engine='python').transpose()
+
+    if nan_fill is not None:
+        df_phen = df_phen.fillna(nan_fill)
 
     return df_phen, df_xp
