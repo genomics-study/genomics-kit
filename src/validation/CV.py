@@ -16,8 +16,8 @@ def validator(samples, labels, classifier, method):
             accuracy_score(test_labels, prediction), # 1 - misclassification
             precision_score(test_labels, prediction, average='micro'), 
             f1_score(test_labels, prediction, average='micro'),
-            confusion_matrix(test_labels, prediction, labels=[0,1,2]) * splits_no, # confusion matrix scaled to match real samples number 
-            confusion_matrix(test_labels, prediction, labels=[0,1,2]) / len(test_labels) # confusion matrix converted to probabilities 
+            confusion_matrix(test_labels, prediction, labels=list(set(labels))) * splits_no, # confusion matrix scaled to match real samples number 
+            confusion_matrix(test_labels, prediction, labels=list(set(labels))) / len(test_labels) # confusion matrix converted to probabilities 
                 ]
         scores.append(score) # missclassification rate
     mean_score = np.mean(np.array(scores),axis=0)
