@@ -2,4 +2,5 @@
 *.ipynb
 *.txt
 __pycache__/
-!src/notebooks/*.ipynb
+!notebooks/*.ipynb
+!notebooks/classifiers/*.ipynb
