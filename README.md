@@ -1,5 +1,9 @@
 # Genomics Kit
 
-## Usage
+Ensemble of feature selection algorithms for multiclass classification of cardiovascular disease.
 
-TODO
+## Content
+
+1. Preprocessing module cleaning clinical dataset
+2. Versatile validation module for classifiers
+3. Notebooks showing classifiers' performance
