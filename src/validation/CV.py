@@ -1,7 +1,8 @@
 from sklearn.metrics import accuracy_score, precision_score, f1_score, confusion_matrix
 import numpy as np
 
-def validator(samples, labels, classifier, method):
+
+def validate(samples, labels, classifier, method):
     splits_no =  method.get_n_splits(samples, labels)
     splits = method.split(samples, labels)
     scores = []
