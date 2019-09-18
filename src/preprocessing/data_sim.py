@@ -7,7 +7,8 @@ def data_sim():
     no_samples = 300
 
     mean = uniform(low=-10.0, high=10.0, size=(no_features,))
-    variance = uniform(low=-1.0, high=1.0, size=(no_features, no_features,))
+    variance = uniform(low=-1.0, high=1.0, size=(no_features,no_features))
+    variance = (variance + variance.T)/2
 
     takes = multivariate_normal(mean, variance, no_samples)
 
@@ -25,11 +26,11 @@ def data_sim():
     arr = np.empty(300, int)
 
     for i in range(300):
-        if label[0][i]:
+        if label[0][i] == True:
             arr[i] = 1
-        elif label[1][i]:
+        elif label[1][i] == True:
             arr[i] = 2
-        elif label[2][i]:
+        elif label[2][i] == True:
             arr[i] = 3
         else:
             arr[i] = 4
