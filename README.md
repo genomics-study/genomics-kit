@@ -7,3 +7,6 @@ Ensemble of feature selection algorithms for multiclass classification of cardio
 1. Preprocessing module cleaning clinical dataset
 2. Versatile validation module for classifiers
 3. Notebooks showing classifiers' performance
+
+
+To run gui: `python3 gui.py`
