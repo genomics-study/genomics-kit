@@ -1,6 +1,4 @@
 import numpy as np
-import matplotlib.pyplot as plt
-
 from sklearn.linear_model import Lasso, Ridge
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.svm import SVC
@@ -16,6 +14,7 @@ extraction_methods = ["coef_", "feature_importances_", "ranking_"]
 class MissclassificationRate:
     def validate(X_pred, y_t):
         return np.sum(np.round(X_pred) != y_t)/X_pred.shape[0]
+
 
 class JsonIOMixin:
     def from_json(self, model_descr):
@@ -76,7 +75,8 @@ class JsonIOMixin:
                 else:
                     pass # throw unsuported component/wrapper error
         return output
-    
+
+
 class Model(JsonIOMixin):
     def __init__(self, components=[], ensemble=None, validation=None):
         self.ensemble = ensemble
@@ -115,6 +115,15 @@ class Model(JsonIOMixin):
             found_method = (component_methods & set(extraction_methods)).pop()
             return getattr(component, found_method)
         return np.array([_get_proper_attribute(component) for component in self.components.values()])
-        
+
+    def perform_voting(self):
+        def scale(raw):
+            return raw / np.max(raw)
+        ranking = self.feature_ranking()
+        ranking = abs(ranking)
+        scaled = np.apply_along_axis(scale, 1, ranking)
+        return np.apply_along_axis(np.mean, 0, scaled)
+
     def __repr__(self):
-        return "Components:\n\n" + "\n\n".join([str(c) for c in self.components.items()]) + "\n\nEnsemble method:\n\n[TODO]"
+        return "Components:\n\n" + "\n\n".join([str(c) for c in self.components.items()]) \
+               + "\n\nEnsemble method:\n\nweighted arithmetic mean applied on scaled results"

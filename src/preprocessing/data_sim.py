@@ -1,4 +1,5 @@
 import numpy as np
+import scipy.linalg as la
 from numpy.random import multivariate_normal, uniform, random
 
 
@@ -7,8 +8,10 @@ def data_sim():
     no_samples = 300
 
     mean = uniform(low=-10.0, high=10.0, size=(no_features,))
-    variance = uniform(low=-1.0, high=1.0, size=(no_features,no_features))
-    variance = (variance + variance.T)/2
+    eigs = uniform(low=1.0, high=2.0, size=(no_features,))
+    s = np.diag(eigs)
+    q, _ = la.qr(uniform(low=1.0, high=2.0, size=(no_features, no_features)))
+    variance = q.T @ s @ q
 
     takes = multivariate_normal(mean, variance, no_samples)
 
