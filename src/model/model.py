@@ -1,16 +1,17 @@
 import numpy as np
-from sklearn.linear_model import Lasso, Ridge
+from sklearn.linear_model import Lasso, Ridge, ElasticNet, LogisticRegression
+from sklearn.discriminant_analysis import LinearDiscriminantAnalysis as LDA
+from sklearn.tree import DecisionTreeClassifier as Tree
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.svm import SVC
-from sklearn.feature_selection import RFE
+from sklearn.feature_selection import RFE, GenericUnivariateSelect
 
-available_components = {"lasso": Lasso, "ridge": Ridge, "forrest": RandomForestClassifier}
+available_embedded = {"lasso": Lasso, "ridge": Ridge, "net": ElasticNet, "forrest": RandomForestClassifier}
 available_wrappers = {"rfe": RFE}
-available_classifiers = {"svm": SVC}
+available_classifiers = {"svm": SVC, "reg": LogisticRegression, "lda": LDA, "tree": Tree}
 extraction_methods = ["coef_", "feature_importances_", "ranking_"]
 
 
-# Example of Validator, TODO: Change validator from validation/CV.py to match this scheme
 class MissclassificationRate:
     def validate(X_pred, y_t):
         return np.sum(np.round(X_pred) != y_t)/X_pred.shape[0]
@@ -19,7 +20,7 @@ class MissclassificationRate:
 class JsonIOMixin:
     def from_json(self, model_descr):
         self.components = {}
-        available_wrapable = {**available_components, **available_classifiers}
+        available_wrapable = {**available_embedded, **available_classifiers}
         for name, description in model_descr["components"].items():
             component, cmp_params = next(iter(description.items()))
             if component in available_wrappers.keys():
@@ -35,19 +36,20 @@ class JsonIOMixin:
                     parsed_params.pop(wrapable_key,None)
                     self.components[name] = wrapper(**parsed_params)
             else:
-                self.components[name] = available_components[component](**cmp_params)
+                self.components[name] = available_embedded[component](**cmp_params)
         return self
     
     def to_json(self):
         def reverse_dict(x):
             return {j:i for i,j in x.items()}
+
         def get_arguments(component):
             parameter_values = component.__dict__.items()
             constructor_argument_names = component.__init__.__code__.co_varnames
             return {k: v for k,v in parameter_values if k in constructor_argument_names}
-        rev_components = reverse_dict(available_components)
+        rev_components = reverse_dict(available_embedded)
         rev_wrappers = reverse_dict(available_wrappers)
-        rev_wrappable = reverse_dict({**available_components, **available_classifiers})
+        rev_wrappable = reverse_dict({**available_embedded, **available_classifiers})
         output = {}
         output['components'] = {}
         components = self.components
@@ -88,9 +90,6 @@ class Model(JsonIOMixin):
     
     def add_component(self, new_component):
         self.components.append(new_component)
-    
-    def set_ensemble(self, ensemble_method):
-        self.ensemble_method = ensemble_method
         
     def set_validation(self, validation):
         self.validation = validation
