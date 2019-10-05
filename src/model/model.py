@@ -1,10 +1,10 @@
 import numpy as np
-from sklearn.linear_model import Lasso, Ridge, ElasticNet, LogisticRegression
+from sklearn.linear_model import *
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis as LDA
 from sklearn.tree import DecisionTreeClassifier as Tree
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.svm import SVC
-from sklearn.feature_selection import RFE, GenericUnivariateSelect
+from sklearn.feature_selection import *
 
 available_embedded = {"lasso": Lasso, "ridge": Ridge, "net": ElasticNet, "forrest": RandomForestClassifier}
 available_wrappers = {"rfe": RFE}
@@ -116,9 +116,20 @@ class Model(JsonIOMixin):
         return np.array([_get_proper_attribute(component) for component in self.components.values()])
 
     def perform_voting(self):
+        def adopt(feat, name):
+            if type(name) is LogisticRegressionCV or type(name) is LogisticRegression:
+                return np.apply_along_axis(np.sum, 0, abs(feat))
+            elif type(name) is RFECV or type(name) is RFE:
+                return np.apply_along_axis(lambda x: 1 / x, 0, feat)
+            else:
+                return feat
+
         def scale(raw):
             return raw / np.max(raw)
+
         ranking = self.feature_ranking()
+        ranking = [adopt(feat, name) for feat, name in zip(ranking, list(self.components.values()))]
+        ranking = np.array(ranking)
         ranking = abs(ranking)
         scaled = np.apply_along_axis(scale, 1, ranking)
         return np.apply_along_axis(np.mean, 0, scaled)
