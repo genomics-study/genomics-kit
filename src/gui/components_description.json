@@ -1,0 +1,23 @@
+{
+  "components":{
+    "Lasso_component": {
+      "lasso": {
+        "alpha": 0.1
+      }
+    },
+    "Ridge_component": {
+      "ridge": {
+        "alpha": 0.1
+      }
+    },
+    "RFE_SVM_component": {
+      "rfe": {
+        "svm": {
+          "gamma": "scale",
+          "kernel": "linear"
+        },
+        "verbose": 1
+      }
+    }
+  }
+}
