@@ -1,18 +1,20 @@
 import numpy as np
-from sklearn.linear_model import *
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis as LDA
-from sklearn.tree import DecisionTreeClassifier as Tree
+from sklearn.discriminant_analysis import QuadraticDiscriminantAnalysis as QDA
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.svm import SVC
 from sklearn.feature_selection import *
+from sklearn.linear_model import *
+from sklearn.svm import SVC
+from sklearn.tree import DecisionTreeClassifier as Tree
 
-available_embedded = {"lasso": Lasso, "ridge": Ridge, "net": ElasticNet, "forrest": RandomForestClassifier}
-available_wrappers = {"rfe": RFE}
-available_classifiers = {"svm": SVC, "reg": LogisticRegression, "lda": LDA, "tree": Tree}
+available_embedded = {"lasso": Lasso, "ridge": Ridge, "net": ElasticNet, "random_forest": RandomForestClassifier,
+                      "lr": LogisticRegression, "lrcv": LogisticRegressionCV}
+available_wrappers = {"rfe": RFE, "rfecv": RFECV}
+available_classifiers = {"svm": SVC, "reg": LogisticRegression, "lda": LDA, "qda": QDA, "tree": Tree}
 extraction_methods = ["coef_", "feature_importances_", "ranking_"]
 
 
-class MissclassificationRate:
+class MisclassificationRate:
     def validate(X_pred, y_t):
         return np.sum(np.round(X_pred) != y_t)/X_pred.shape[0]
 

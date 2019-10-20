@@ -1,17 +1,25 @@
 {
   "components":{
     "Lasso_component": {
-      "lasso": {
-        "alpha": 0.1
+      "lrcv": {
+        "penalty": "l2",
+        "solver": "newton-cg",
+        "multi_class": "multinomial"
       }
     },
     "Ridge_component": {
-      "ridge": {
-        "alpha": 0.1
+      "lrcv": {
+        "penalty": "l1",
+        "solver": "liblinear"
+      }
+    },
+    "Random_forest_component": {
+      "random_forest": {
+        "n_estimators": 100
       }
     },
     "RFE_SVM_component": {
-      "rfe": {
+      "rfecv": {
         "svm": {
           "gamma": "scale",
           "kernel": "linear"

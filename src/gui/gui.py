@@ -1,13 +1,15 @@
-import numpy as np
 import re
 import sys
-from PyQt5.QtWidgets import *
-from PyQt5.QtGui import QIcon, QStandardItem, QStandardItemModel
+
+import numpy as np
 from PyQt5.QtCore import pyqtSlot, Qt
+from PyQt5.QtGui import QStandardItem, QStandardItemModel
+from PyQt5.QtWidgets import *
 from pandas.io import json
 from sklearn.ensemble import RandomForestClassifier
+from sklearn.svm import SVC
 
-from src.model.model import Model
+from src.model.model import Model, LogisticRegressionCV, RFECV
 from src.preprocessing.data_sim import data_sim
 from src.validation.CV import Validator
 
@@ -51,37 +53,33 @@ class App(QMainWindow):
         self.loadButton = QPushButton('Load Dataset', self)
         self.loadButton.move(80, 700)
 
-        self.chooseButton = QPushButton('Choose classifiers', self)
+        self.chooseButton = QPushButton('Choose algorithms', self)
         self.chooseButton.resize(150, 30)
         self.chooseButton.move(400, 700)
 
-        self.classifiersNames = ['RandomForest', 'LDA', 'QDA', 'Lasso', 'Elastic Net']
-        self.classifiersCheckboxesModel = QStandardItemModel()
-        for i, name in enumerate(self.classifiersNames):
+        self.algorithmsNames = ['Lasso', 'Ridge', 'RandomForest', 'RFECV_SVM']
+        self.algorithmsCheckboxesModel = QStandardItemModel()
+        for i, name in enumerate(self.algorithmsNames):
             item = QStandardItem(name)
             item.setCheckState(False)
             item.setCheckable(True)
-            self.classifiersCheckboxesModel.appendRow(item)
+            self.algorithmsCheckboxesModel.appendRow(item)
 
-        # closeButton = QPushButton('Close', self.classifiersCheckboxesModel)
-        # self.classifiersCheckboxes.appendRow(closeButton)
+        # closeButton = QPushButton('Close', self.algorithmsCheckboxesModel)
+        # self.algorithmsCheckboxes.appendRow(closeButton)
 
         self.view = QListView()
-        self.view.setWindowTitle('Classifiers')
-        self.view.setModel(self.classifiersCheckboxesModel)
+        self.view.setWindowTitle('algorithms')
+        self.view.setModel(self.algorithmsCheckboxesModel)
 
         # connect button to function on_click
         self.evalButton.clicked.connect(self.evaluateOnClick)
         self.loadButton.clicked.connect(self.openFileNameDialog)
-        self.chooseButton.clicked.connect(self.proceedClassifiersChoice)
+        self.chooseButton.clicked.connect(self.proceedalgorithmsChoice)
 
         self.show()
 
-        # with open("input.txt", mode="w+", encoding='utf8') as file:
-        #     X, y = data_sim()
-        #     file.write("\n".join())
-
-    def proceedClassifiersChoice(self):
+    def proceedalgorithmsChoice(self):
         self.view.show()
 
     def openFileNameDialog(self):
@@ -96,27 +94,34 @@ class App(QMainWindow):
     def evaluateOnClick(self):
         q_model = self.view.model()
         labels = self.getSelectedItemsLabels(q_model)
-        model = Model()
+        # model = Model()
         if len(labels) > 0:
             models = []
             for label in labels:
-                if label == 'RandomForest':
+                if label == 'Lasso':
+                    models.append(LogisticRegressionCV(penalty='l2', solver='newton-cg', multi_class='multinomial'))
+                elif label == 'Ridge':
+                    models.append(LogisticRegressionCV(penalty='l1', solver='liblinear'))
+                elif label == 'RandomForest':
                     models.append(RandomForestClassifier(n_estimators=100))
-                # TODO - implement rest of classifiers
+                elif label == 'RFECV_SVM':
+                    models.append(RFECV(estimator=SVC(gamma="scale", kernel="linear"), verbose=1))
             model = Model(models)
-            print(model, models)
+            # print(model, models)
         else:
             plain_text = self.textbox.toPlainText()
             json_components = json.loads(plain_text)
             model = Model(json_components)
-            model.from_json(json_components)
-            print("model", model, plain_text, json_components, sep="\n")
+            model = model.from_json(json_components)
+            # print("model", model, json_components, sep="\n")
         data = self.getDataFromFile(self.label1.text())
         training_size = len(data[0]) // 2
         model = self.getTrainedAndValidatedModel(model, data, training_size)
-        QMessageBox.question(self, "Genomics Studies - Summary", "You chose: " + str(labels)
-                             + "\n Feature ranking: \n" + str(model.feature_ranking())
-                             + "\n Performed voting: \n" + str(model.perform_voting()),
+        feature_ranking = model.feature_ranking()
+        performed_voting = model.perform_voting()
+        QMessageBox.question(self, "Genomics Studies - Summary",
+                             "\n Performed voting: \n" +
+                             "\n".join(["Feature " + self.getPretty(i) + " : " + str(performed_voting[i]) for i in range(len(performed_voting))]),
                              QMessageBox.Ok, QMessageBox.Ok)
 
     def getDataFromFile(self, path=""):
@@ -140,7 +145,6 @@ class App(QMainWindow):
         for row in range(model.rowCount()):
             item = model.item(row)
             if item.checkState() == Qt.Checked:
-                print(row, item, item.text())
                 labels.append(item.text())
         return labels
 
@@ -150,11 +154,16 @@ class App(QMainWindow):
         y_tr = y[:training_size]
         X_test = X[training_size:, :]
         y_test = y[training_size:]
-        print(X_tr, y_tr, X_test, y_test, type(data), type(data[0]), type(data[1]), type(data[0][0]), type(data[1][0]), data[0].shape, data[1].shape, sep="\n")
+        # print(X_tr, y_tr, X_test, y_test, sep="\n")
         model.fit(X_tr, y_tr)
         model.set_validation(validator)
         model.validate(X_test, y_test)
         return model
+
+    def getPretty(self, i, char_num = 3):
+        s = str(i)
+        return "".join([" " for x in range(char_num - len(s))]) + s
+
 
 
 if __name__ == '__main__':
