@@ -29,7 +29,6 @@ class App(QMainWindow):
         self.setWindowTitle(self.title)
         self.setGeometry(self.left, self.top, self.width, self.height)
 
-        # Create text label
         self.label1 = QLabel(self)
         self.label1.move(200, 705)
         self.label1.resize(300, 20)
@@ -40,22 +39,39 @@ class App(QMainWindow):
         self.label2.resize(300, 20)
         self.label2.setText("Insert model description")
 
-        # Create textbox
         self.textbox = QPlainTextEdit(self)
         self.textbox.move(20, 60)
         self.textbox.resize(1000, 600)
 
-        # Create a button in the window
         self.evalButton = QPushButton('Evaluate', self)
         self.evalButton.move(850, 700)
 
-        # Create a button in the window
         self.loadButton = QPushButton('Load Dataset', self)
         self.loadButton.move(80, 700)
 
         self.chooseButton = QPushButton('Choose algorithms', self)
         self.chooseButton.resize(150, 30)
         self.chooseButton.move(400, 700)
+
+        self.compButton = QPushButton('Choose components', self)
+        self.compButton.resize(150, 30)
+        self.compButton.move(600, 700)
+
+        self.compWindow = ComponentsChoiceWindow(self)
+
+        self.optionNames = ['Load json', 'Paste json', 'Choose from defaults']
+        self.optionCheckboxesModel = QStandardItemModel()
+
+        for i, name in enumerate(self.optionNames):
+            item = QStandardItem(name)
+            item.setCheckState(False)
+            item.setCheckable(True)
+            self.optionCheckboxesModel.appendRow(item)
+
+        self.optionView = QListView()
+        self.optionView.setWindowTitle('Options')
+        self.optionView.setModel(self.optionCheckboxesModel)
+
 
         self.algorithmsNames = ['Lasso', 'Ridge', 'RandomForest', 'RFECV_SVM']
         self.algorithmsCheckboxesModel = QStandardItemModel()
@@ -69,18 +85,31 @@ class App(QMainWindow):
         # self.algorithmsCheckboxes.appendRow(closeButton)
 
         self.view = QListView()
-        self.view.setWindowTitle('algorithms')
+        self.view.setWindowTitle('Algorithms')
         self.view.setModel(self.algorithmsCheckboxesModel)
 
         # connect button to function on_click
         self.evalButton.clicked.connect(self.evaluateOnClick)
         self.loadButton.clicked.connect(self.openFileNameDialog)
-        self.chooseButton.clicked.connect(self.proceedalgorithmsChoice)
+        self.chooseButton.clicked.connect(self.proceedAlgorithmsChoice)
+        self.compButton.clicked.connect(self.proceedComponentsChoice)
 
         self.show()
 
-    def proceedalgorithmsChoice(self):
-        self.view.show()
+    def proceedComponentsChoice(self):
+        # self.optionView.show()
+        self.compWindow.setWindowTitle("Components choice")
+        self.compWindow.showNormal()
+
+    def parseComponentsChoice(self):
+        q_model = self.view.model()
+        labels = self.getSelectedItemsLabels(q_model)
+        '''
+        if len(labels) != 1:
+            QMessageBox.question(self, "Exactly one option should be chosen.", "",
+                                 QMessageBox.Ok, QMessageBox.Ok)
+        '''
+
 
     def openFileNameDialog(self):
         options = QFileDialog.Options()
@@ -89,6 +118,9 @@ class App(QMainWindow):
                                                   "All Files (*);;CSV Files (*.csv)", options=options)
         if fileName:
             self.label1.setText(fileName)
+
+    def proceedAlgorithmsChoice(self):
+        self.view.show()
 
     @pyqtSlot()
     def evaluateOnClick(self):
@@ -116,7 +148,7 @@ class App(QMainWindow):
             # print("model", model, json_components, sep="\n")
         data = self.getDataFromFile(self.label1.text())
         training_size = len(data[0]) // 2
-        model = self.getTrainedAndValidatedModel(model, data, training_size)
+        model, validation = self.getTrainedAndValidatedModelWithValidation(model, data, training_size)
         feature_ranking = model.feature_ranking()
         performed_voting = model.perform_voting()
         QMessageBox.question(self, "Genomics Studies - Summary",
@@ -148,7 +180,7 @@ class App(QMainWindow):
                 labels.append(item.text())
         return labels
 
-    def getTrainedAndValidatedModel(self, model: Model, data, training_size, validator: Validator = Validator()):
+    def getTrainedAndValidatedModelWithValidation(self, model: Model, data, training_size, validator: Validator = Validator()):
         X, y = data
         X_tr = X[:training_size, :]
         y_tr = y[:training_size]
@@ -157,12 +189,49 @@ class App(QMainWindow):
         # print(X_tr, y_tr, X_test, y_test, sep="\n")
         model.fit(X_tr, y_tr)
         model.set_validation(validator)
-        model.validate(X_test, y_test)
-        return model
+        validation = model.validate(X_test, y_test)
+        return model, validation
 
-    def getPretty(self, i, char_num = 3):
+    def getPretty(self, i, char_num=3):
         s = str(i)
         return "".join([" " for x in range(char_num - len(s))]) + s
+
+
+class ComponentsChoiceWindow(QMainWindow):
+    def __init__(self, app):
+        super().__init__()
+        self.width = 800
+        self.height = 640
+        self.left = 10
+        self.top = 10
+        self.setGeometry(self.left, self.top, self.width, self.height)
+        self.app = app
+        self.initUI()
+
+    def initUI(self):
+        self.chooseAlgorithmsButton = QPushButton('Choose algorithms', self)
+        self.chooseAlgorithmsButton.resize(150, 30)
+        self.chooseAlgorithmsButton.move(400, 400)
+        self.chooseAlgorithmsButton.clicked.connect(self.proceedAlgorithmsChoice)
+
+        self.loadJsonButton = QPushButton('Load json model', self)
+        self.loadJsonButton.resize(150, 30)
+        self.loadJsonButton.move(250, 400)
+        self.loadJsonButton.clicked.connect(self.proceedLoadJson)
+
+        self.show()
+
+    def proceedAlgorithmsChoice(self):
+        self.app.view.show()
+
+    def proceedLoadJson(self):
+        self.textbox = QPlainTextEdit(self)
+        self.textbox.move(20, 60)
+        self.textbox.resize(1000, 600)
+        self.textbox.showNormal()
+
+        self.app.textbox = self.textbox
+
 
 
 
