@@ -2,6 +2,7 @@ import re
 import sys
 
 import numpy as np
+import pyqtgraph as pg
 from PyQt5.QtCore import pyqtSlot, Qt
 from PyQt5.QtGui import QStandardItem, QStandardItemModel
 from PyQt5.QtWidgets import *
@@ -23,9 +24,7 @@ class App(QMainWindow):
         self.top = 10
         self.width = 1040
         self.height = 800
-        self.initUI()
 
-    def initUI(self):
         self.setWindowTitle(self.title)
         self.setGeometry(self.left, self.top, self.width, self.height)
 
@@ -43,88 +42,54 @@ class App(QMainWindow):
         self.textbox.move(20, 60)
         self.textbox.resize(1000, 600)
 
-        self.evalButton = QPushButton('Evaluate', self)
-        self.evalButton.move(850, 700)
+        self.load_dataset_button = QPushButton('Load Dataset', self)
+        self.load_dataset_button.move(80, 700)
 
-        self.loadButton = QPushButton('Load Dataset', self)
-        self.loadButton.move(80, 700)
+        self.components_choice_button = QPushButton('Choose components', self)
+        self.components_choice_button.resize(150, 30)
+        self.components_choice_button.move(400, 700)
 
-        self.chooseButton = QPushButton('Choose algorithms', self)
-        self.chooseButton.resize(150, 30)
-        self.chooseButton.move(400, 700)
+        self.evaluate_button = QPushButton('Evaluate', self)
+        self.evaluate_button.move(850, 700)
 
-        self.compButton = QPushButton('Choose components', self)
-        self.compButton.resize(150, 30)
-        self.compButton.move(600, 700)
+        self.components_choice_window = ComponentsChoiceWindow(self)
 
-        self.compWindow = ComponentsChoiceWindow(self)
-
-        self.optionNames = ['Load json', 'Paste json', 'Choose from defaults']
-        self.optionCheckboxesModel = QStandardItemModel()
-
-        for i, name in enumerate(self.optionNames):
+        self.algorithms_names = ['Lasso', 'Ridge', 'RandomForest', 'RFECV_SVM']
+        self.algorithms_checkboxes_model = QStandardItemModel()
+        for i, name in enumerate(self.algorithms_names):
             item = QStandardItem(name)
             item.setCheckState(False)
             item.setCheckable(True)
-            self.optionCheckboxesModel.appendRow(item)
+            self.algorithms_checkboxes_model.appendRow(item)
 
-        self.optionView = QListView()
-        self.optionView.setWindowTitle('Options')
-        self.optionView.setModel(self.optionCheckboxesModel)
-
-
-        self.algorithmsNames = ['Lasso', 'Ridge', 'RandomForest', 'RFECV_SVM']
-        self.algorithmsCheckboxesModel = QStandardItemModel()
-        for i, name in enumerate(self.algorithmsNames):
-            item = QStandardItem(name)
-            item.setCheckState(False)
-            item.setCheckable(True)
-            self.algorithmsCheckboxesModel.appendRow(item)
-
-        # closeButton = QPushButton('Close', self.algorithmsCheckboxesModel)
-        # self.algorithmsCheckboxes.appendRow(closeButton)
-
-        self.view = QListView()
-        self.view.setWindowTitle('Algorithms')
-        self.view.setModel(self.algorithmsCheckboxesModel)
+        self.algorithms_view = QListView()
+        self.algorithms_view.setWindowTitle('Algorithms')
+        self.algorithms_view.setModel(self.algorithms_checkboxes_model)
 
         # connect button to function on_click
-        self.evalButton.clicked.connect(self.evaluateOnClick)
-        self.loadButton.clicked.connect(self.openFileNameDialog)
-        self.chooseButton.clicked.connect(self.proceedAlgorithmsChoice)
-        self.compButton.clicked.connect(self.proceedComponentsChoice)
+        self.evaluate_button.clicked.connect(self.evaluateOnClick)
+        self.load_dataset_button.clicked.connect(self.openFileNameDialog)
+        self.components_choice_button.clicked.connect(self.proceedComponentsChoice)
 
         self.show()
 
     def proceedComponentsChoice(self):
-        # self.optionView.show()
-        self.compWindow.setWindowTitle("Components choice")
-        self.compWindow.showNormal()
-
-    def parseComponentsChoice(self):
-        q_model = self.view.model()
-        labels = self.getSelectedItemsLabels(q_model)
-        '''
-        if len(labels) != 1:
-            QMessageBox.question(self, "Exactly one option should be chosen.", "",
-                                 QMessageBox.Ok, QMessageBox.Ok)
-        '''
-
+        self.components_choice_window.showNormal()
 
     def openFileNameDialog(self):
         options = QFileDialog.Options()
         options |= QFileDialog.DontUseNativeDialog
-        fileName, _ = QFileDialog.getOpenFileName(self, "QFileDialog.getOpenFileName()", "",
+        file_name, _ = QFileDialog.getOpenFileName(self, "QFileDialog.getOpenFileName()", "",
                                                   "All Files (*);;CSV Files (*.csv)", options=options)
-        if fileName:
-            self.label1.setText(fileName)
+        if file_name:
+            self.label1.setText(file_name)
 
     def proceedAlgorithmsChoice(self):
-        self.view.show()
+        self.algorithms_view.show()
 
     @pyqtSlot()
     def evaluateOnClick(self):
-        q_model = self.view.model()
+        q_model = self.algorithms_view.model()
         labels = self.getSelectedItemsLabels(q_model)
         # model = Model()
         if len(labels) > 0:
@@ -139,22 +104,28 @@ class App(QMainWindow):
                 elif label == 'RFECV_SVM':
                     models.append(RFECV(estimator=SVC(gamma="scale", kernel="linear"), verbose=1))
             model = Model(models)
-            # print(model, models)
         else:
             plain_text = self.textbox.toPlainText()
             json_components = json.loads(plain_text)
             model = Model(json_components)
             model = model.from_json(json_components)
-            # print("model", model, json_components, sep="\n")
         data = self.getDataFromFile(self.label1.text())
         training_size = len(data[0]) // 2
         model, validation = self.getTrainedAndValidatedModelWithValidation(model, data, training_size)
-        feature_ranking = model.feature_ranking()
-        performed_voting = model.perform_voting()
+        # feature_ranking = model.feature_ranking()
+        voting_results = model.perform_voting()
         QMessageBox.question(self, "Genomics Studies - Summary",
-                             "\n Performed voting: \n" +
-                             "\n".join(["Feature " + self.getPretty(i) + " : " + str(performed_voting[i]) for i in range(len(performed_voting))]),
+                             "\n Voting results: \n" +
+                             "\n".join(["Feature " + self.getPretty(i) + " : " + str(v) for (i, v) in enumerate(voting_results)]),
                              QMessageBox.Ok, QMessageBox.Ok)
+
+        sorted_voting = reversed(sorted([(voting_results[i], i) for i in range(len(voting_results))]))
+        QMessageBox.question(self, "Genomics Studies - Summary",
+                             "\n Features sorted by votes: \n" +
+                             "\n".join(["Feature " + self.getPretty(i) + " : " + str(v) for (v, i) in sorted_voting]),
+                             QMessageBox.Ok, QMessageBox.Ok)
+
+        ResultsChartWindow(self, model).showNormal()
 
     def getDataFromFile(self, path=""):
         if not path:
@@ -197,6 +168,26 @@ class App(QMainWindow):
         return "".join([" " for x in range(char_num - len(s))]) + s
 
 
+class ResultsChartWindow(QMainWindow):
+    def __init__(self, app, model):
+        super().__init__()
+        self.width = 800
+        self.height = 640
+        self.left = 10
+        self.top = 10
+        self.setGeometry(self.left, self.top, self.width, self.height)
+        self.setWindowTitle("Genomics Studies - Summary")
+        self.app = app
+        self.model = model
+        self.voting_results = model.perform_voting()
+        self.voting_results_window = pg.plot()
+
+        self.voting_results_window.setWindowTitle('Voting Results')
+        x, y = list(zip(*enumerate(self.voting_results)))
+        voting_results_graph = pg.BarGraphItem(x=x, height=y, width=0.6, brush='y')
+        self.voting_results_window.addItem(voting_results_graph)
+
+
 class ComponentsChoiceWindow(QMainWindow):
     def __init__(self, app):
         super().__init__()
@@ -205,34 +196,66 @@ class ComponentsChoiceWindow(QMainWindow):
         self.left = 10
         self.top = 10
         self.setGeometry(self.left, self.top, self.width, self.height)
+        self.setWindowTitle("Choose components")
         self.app = app
-        self.initUI()
 
-    def initUI(self):
-        self.chooseAlgorithmsButton = QPushButton('Choose algorithms', self)
-        self.chooseAlgorithmsButton.resize(150, 30)
-        self.chooseAlgorithmsButton.move(400, 400)
-        self.chooseAlgorithmsButton.clicked.connect(self.proceedAlgorithmsChoice)
+        # self.option_names = ['Load json', 'Paste json', 'Choose from defaults']
+        # self.option_checkboxes_model = QStandardItemModel()
+        #
+        # for i, name in enumerate(self.option_names):
+        #     item = QStandardItem(name)
+        #     item.setCheckState(False)
+        #     item.setCheckable(True)
+        #     self.option_checkboxes_model.appendRow(item)
+        #
+        # self.option_view = QListView()
+        # self.option_view.setWindowTitle('Options')
+        # self.option_view.setModel(self.option_checkboxes_model)
+        #
+        # # self.optionView.showNormal()
+        #
+        # self.central_widget = QWidget()
+        # self.setCentralWidget(self.central_widget)
+        #
+        # self.layout = QVBoxLayout(self.central_widget)
+        # self.setLayout(self.layout)
+        # self.layout.addWidget(self.option_view)
 
-        self.loadJsonButton = QPushButton('Load json model', self)
-        self.loadJsonButton.resize(150, 30)
-        self.loadJsonButton.move(250, 400)
-        self.loadJsonButton.clicked.connect(self.proceedLoadJson)
+        self.choose_algorithms_button = QPushButton('Choose algorithms', self)
+        self.choose_algorithms_button.resize(150, 30)
+        self.choose_algorithms_button.move(400, 400)
+        self.choose_algorithms_button.clicked.connect(self.proceedAlgorithmsChoice)
 
-        self.show()
+        self.load_json_button = QPushButton('Paste json model', self)
+        self.load_json_button.resize(150, 30)
+        self.load_json_button.move(250, 400)
+        self.load_json_button.clicked.connect(self.proceedLoadJson)
 
     def proceedAlgorithmsChoice(self):
-        self.app.view.show()
+        self.app.algorithms_view.show()
 
     def proceedLoadJson(self):
+        self.load_json_window = LoadJsonWindow(self)
+        self.load_json_window.show()
+        self.app.textbox = self.textbox
+
+
+class LoadJsonWindow(QMainWindow):
+    def __init__(self, app):
+        super().__init__()
+        self.width = 800
+        self.height = 640
+        self.left = 10
+        self.top = 10
+        self.setGeometry(self.left, self.top, self.width, self.height)
+        self.setWindowTitle("Paste json model")
+        self.app = app
+
         self.textbox = QPlainTextEdit(self)
         self.textbox.move(20, 60)
         self.textbox.resize(1000, 600)
         self.textbox.showNormal()
-
         self.app.textbox = self.textbox
-
-
 
 
 if __name__ == '__main__':
