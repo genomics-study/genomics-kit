@@ -37,17 +37,24 @@ class App(QMainWindow):
         self.label2.move(430, 20)
         self.label2.resize(300, 20)
         self.label2.setText("Insert model description")
+        self.label2.hide()
 
         self.textbox = QPlainTextEdit(self)
         self.textbox.move(20, 60)
         self.textbox.resize(1000, 600)
+        self.textbox.hide()
+
+        self.textbox2 = QPlainTextEdit(self)        # Unused textbox
+        self.textbox2.move(20, 60)
+        self.textbox2.resize(1000, 600)
+        self.textbox2.setReadOnly(True)
 
         self.load_dataset_button = QPushButton('Load Dataset', self)
         self.load_dataset_button.move(80, 700)
 
         self.components_choice_button = QPushButton('Choose components', self)
         self.components_choice_button.resize(150, 30)
-        self.components_choice_button.move(400, 700)
+        self.components_choice_button.move(440, 700)
 
         self.evaluate_button = QPushButton('Evaluate', self)
         self.evaluate_button.move(850, 700)
