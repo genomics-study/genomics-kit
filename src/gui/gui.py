@@ -86,7 +86,7 @@ class App(QMainWindow):
     def openFileNameDialog(self):
         options = QFileDialog.Options()
         options |= QFileDialog.DontUseNativeDialog
-        file_name, _ = QFileDialog.getOpenFileName(self, "QFileDialog.getOpenFileName()", "",
+        file_name, _ = QFileDialog.getOpenFileName(self, "Choose dataset file", "",
                                                   "All Files (*);;CSV Files (*.csv)", options=options)
         if file_name:
             self.label1.setText(file_name)
@@ -98,7 +98,6 @@ class App(QMainWindow):
     def evaluateOnClick(self):
         q_model = self.algorithms_view.model()
         labels = self.getSelectedItemsLabels(q_model)
-        # model = Model()
         if len(labels) > 0:
             models = []
             for label in labels:
@@ -119,20 +118,40 @@ class App(QMainWindow):
         data = self.getDataFromFile(self.label1.text())
         training_size = len(data[0]) // 2
         model, validation = self.getTrainedAndValidatedModelWithValidation(model, data, training_size)
-        # feature_ranking = model.feature_ranking()
+        feature_ranking = model.feature_ranking()
         voting_results = model.perform_voting()
         QMessageBox.question(self, "Genomics Studies - Summary",
                              "\n Voting results: \n" +
                              "\n".join(["Feature " + self.getPretty(i) + " : " + str(v) for (i, v) in enumerate(voting_results)]),
                              QMessageBox.Ok, QMessageBox.Ok)
 
-        sorted_voting = reversed(sorted([(voting_results[i], i) for i in range(len(voting_results))]))
+        sorted_voting = [(i, v) for (v, i) in reversed(sorted([(voting_results[i], i) for i in range(len(voting_results))]))]
         QMessageBox.question(self, "Genomics Studies - Summary",
                              "\n Features sorted by votes: \n" +
-                             "\n".join(["Feature " + self.getPretty(i) + " : " + str(v) for (v, i) in sorted_voting]),
+                             "\n".join(["Feature " + self.getPretty(i) + " : " + str(v) for (i, v) in sorted_voting]),
                              QMessageBox.Ok, QMessageBox.Ok)
+        # print(feature_ranking, "\n".join([str(key) for key in feature_ranking]), sep="\n")
 
-        ResultsChartWindow(self, model).showNormal()
+        self.writeResultToFile(sorted_voting)
+        results_chart_window = ResultsChartWindow(self, model)
+
+    def writeResultToFile(self, result):
+        options = QFileDialog.Options()
+        options |= QFileDialog.DontUseNativeDialog
+        file_name, _ = QFileDialog.getSaveFileName(self, "Choose output file", "",
+                                                   "All Files (*);;CSV Files (*.csv)", options=options)
+        if file_name:
+            with open(file_name, "w+") as file:
+                file.write("Feature; Voting result\n")
+                file.write("\n".join([str(i) + "; " + str(v) for (i, v) in enumerate(result)]))
+
+    def parseLine(self, line):
+        row = re.split("[\\s;,]*", line)
+        if row[0] == "":
+            row = row[1:]
+        if row[-1] == "":
+            row = row[:-1]
+        return row
 
     def getDataFromFile(self, path=""):
         if not path:
@@ -141,10 +160,10 @@ class App(QMainWindow):
             with open(path) as file:
                 input_data_lines = file.read().splitlines()
                 n = len(input_data_lines)
-                m = len(re.split("\\s*;\\s*", input_data_lines[0]))
+                m = len(self.parseLine(input_data_lines[0]))
                 data = (np.ndarray((n, m-1)), np.ndarray((n, )))
                 for i, line in enumerate(input_data_lines):
-                    row = re.split("\\s*;\\s*", line)
+                    row = self.parseLine(line)
                     numbers = [float(x) for x in row[:-1]]
                     data[0][i] = np.array(numbers)
                     data[1][i] = int(row[-1])
@@ -164,7 +183,6 @@ class App(QMainWindow):
         y_tr = y[:training_size]
         X_test = X[training_size:, :]
         y_test = y[training_size:]
-        # print(X_tr, y_tr, X_test, y_test, sep="\n")
         model.fit(X_tr, y_tr)
         model.set_validation(validator)
         validation = model.validate(X_test, y_test)
@@ -242,8 +260,8 @@ class ComponentsChoiceWindow(QMainWindow):
         self.app.algorithms_view.show()
 
     def proceedLoadJson(self):
-        self.load_json_window = LoadJsonWindow(self)
-        self.load_json_window.show()
+        load_json_window = LoadJsonWindow(self)
+        load_json_window.show()
         self.app.textbox = self.textbox
 
 
