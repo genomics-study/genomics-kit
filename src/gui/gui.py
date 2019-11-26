@@ -131,18 +131,24 @@ class App(QMainWindow):
                              "\n".join(["Feature " + self.getPretty(i) + " : " + str(v) for (i, v) in sorted_voting]),
                              QMessageBox.Ok, QMessageBox.Ok)
         # print(feature_ranking, "\n".join([str(key) for key in feature_ranking]), sep="\n")
-
-        self.writeResultToFile(sorted_voting)
+        self.writeResultToFile(sorted_voting, suggested_name="voting_results.csv",
+                               first_row="Feature; Voting result",
+                               command="Choose output file for voting results")
+        self.writeResultToFile(validation, suggested_name="validation_results.txt",
+                               command="Choose output file for validation results")
+        self.writeResultToFile(feature_ranking, suggested_name="feature_ranking.txt",
+                               command="Choose output file for feature ranking")
         results_chart_window = ResultsChartWindow(self, model)
 
-    def writeResultToFile(self, result):
+    def writeResultToFile(self, result, suggested_name="", first_row="", command="Choose output file"):
         options = QFileDialog.Options()
         options |= QFileDialog.DontUseNativeDialog
-        file_name, _ = QFileDialog.getSaveFileName(self, "Choose output file", "",
+        file_name, _ = QFileDialog.getSaveFileName(self, command, suggested_name,
                                                    "All Files (*);;CSV Files (*.csv)", options=options)
         if file_name:
             with open(file_name, "w+") as file:
-                file.write("Feature; Voting result\n")
+                if first_row:
+                    file.write(str(first_row) + "\n")
                 file.write("\n".join([str(i) + "; " + str(v) for (i, v) in enumerate(result)]))
 
     def parseLine(self, line):
