@@ -101,7 +101,7 @@ class Model(JsonIOMixin):
             component.fit(X, y)
     
     def predict(self, X):
-        return np.array([component.predict(X) for component in self.components.values()])
+        return np.array([np.round(component.predict(X)) for component in self.components.values()])
     
     def validate(self, X_t, y_t):
         if self.validation is not None:
