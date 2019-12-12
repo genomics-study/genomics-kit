@@ -1,5 +1,5 @@
-from sklearn.metrics import accuracy_score, precision_score, f1_score, confusion_matrix
 import numpy as np
+from sklearn.metrics import accuracy_score, precision_score, f1_score, confusion_matrix
 
 
 class Validator:
