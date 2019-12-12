@@ -106,17 +106,17 @@ class App(QMainWindow):
                 elif label == 'Ridge':
                     models.append(LogisticRegressionCV(penalty='l1', solver='liblinear'))
                 elif label == 'RandomForest':
-                    models.append(RandomForestClassifier(n_estimators=100))
+                    models.append(RandomForestClassifier(n_estimators=1000))
                 elif label == 'RFECV_SVM':
                     models.append(RFECV(estimator=SVC(gamma="scale", kernel="linear"), verbose=1))
-            model = Model(models)
+                model = Model(models)
         else:
             plain_text = self.textbox.toPlainText()
             json_components = json.loads(plain_text)
             model = Model(json_components)
             model = model.from_json(json_components)
         data = self.getDataFromFile(self.label1.text())
-        training_size = len(data[0]) // 2
+        training_size = int(0.7 * len(data[0]))
         model, validation = self.getTrainedAndValidatedModelWithValidation(model, data, training_size)
         feature_ranking = model.feature_ranking()
         voting_results = model.perform_voting()
@@ -130,11 +130,16 @@ class App(QMainWindow):
                              "\n Features sorted by votes: \n" +
                              "\n".join(["Feature " + self.getPretty(i) + " : " + str(v) for (i, v) in sorted_voting]),
                              QMessageBox.Ok, QMessageBox.Ok)
-        # print(feature_ranking, "\n".join([str(key) for key in feature_ranking]), sep="\n")
-        self.writeResultToFile(sorted_voting, suggested_name="voting_results.csv",
-                               first_row="Feature; Voting result",
+        self.writeResultToFile([str(v[0]) + "; " + str(v[1]) for v in sorted_voting], suggested_name="voting_results.csv",
+                               first_row="Feature number; Voting result",
                                command="Choose output file for voting results")
-        self.writeResultToFile(validation, suggested_name="validation_results.txt",
+        validation_output = []
+        for (comp, val_dict) in validation:
+            validation_output.append(str(comp))
+            for key in val_dict:
+                validation_output.append("  " + str(key) + ":\n    " + str(val_dict[key]))
+            validation_output.append("\n\n")
+        self.writeResultToFile(validation_output, suggested_name="validation_results.txt",
                                command="Choose output file for validation results")
         self.writeResultToFile(feature_ranking, suggested_name="feature_ranking.txt",
                                command="Choose output file for feature ranking")
@@ -149,7 +154,7 @@ class App(QMainWindow):
             with open(file_name, "w+") as file:
                 if first_row:
                     file.write(str(first_row) + "\n")
-                file.write("\n".join([str(i) + "; " + str(v) for (i, v) in enumerate(result)]))
+                file.write("\n".join([str(v) for v in result]))
 
     def parseLine(self, line):
         row = re.split("[\\s;,]*", line)
@@ -185,13 +190,14 @@ class App(QMainWindow):
 
     def getTrainedAndValidatedModelWithValidation(self, model: Model, data, training_size, validator: Validator = Validator()):
         X, y = data
+        # X_tr, y_tr, X_test, y_test = train_test_split(X, y)
         X_tr = X[:training_size, :]
         y_tr = y[:training_size]
         X_test = X[training_size:, :]
         y_test = y[training_size:]
         model.fit(X_tr, y_tr)
         model.set_validation(validator)
-        validation = model.validate(X_test, y_test)
+        validation = model.validateWithComponentNames(X_test, y_test)
         return model, validation
 
     def getPretty(self, i, char_num=3):
