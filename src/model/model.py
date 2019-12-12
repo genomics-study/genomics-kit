@@ -29,7 +29,7 @@ class JsonIOMixin:
                 wrapper = available_wrappers[component]
                 wrapable_keys = cmp_params.keys() & available_wrapable.keys()
                 if not wrapable_keys or len(wrapable_keys) > 1 :
-                    pass # TODO: Throw warning that wrapper won't be included because of lack of classifier/too many classifiers
+                    pass # Throw warning that wrapper won't be included because of lack of classifier/too many classifiers
                 else:
                     wrapable_key = wrapable_keys.pop()
                     wrapable = available_wrapable[wrapable_key](**cmp_params[wrapable_key])
@@ -91,8 +91,7 @@ class Model(JsonIOMixin):
             self.components = {"Component_{0}".format(name) : component for name, component in enumerate(components)}
     
     def add_component(self, new_component):
-        if type(self.components) == list:
-            self.components.append(new_component)
+        self.components.append(new_component)
         
     def set_validation(self, validation):
         self.validation = validation
@@ -102,11 +101,11 @@ class Model(JsonIOMixin):
             component.fit(X, y)
     
     def predict(self, X):
-        return np.array([component.predict(X) for component in self.components.values()])
+        return np.array([np.round(component.predict(X)) for component in self.components.values()])
 
     def predictWithComponentNames(self, X):
         return np.array([(component, component.predict(X)) for component in self.components.values()])
-    
+
     def validate(self, X_t, y_t):
         if self.validation is not None:
             predictions = self.predict(X_t)
@@ -120,7 +119,7 @@ class Model(JsonIOMixin):
             return np.array([(comp, self.validation.validate(pred, y_t)) for (comp, pred) in predictions])
         else:
             pass # throw custom exception NoValidationSpecified
-    
+
     def feature_ranking(self):
         def _get_proper_attribute(component):
             component_methods = set(dir(component))

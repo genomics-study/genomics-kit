@@ -85,10 +85,17 @@ def map_sol(value: str):
 
 def read_dfs(nan_fill: int = None):
     df_phen = pd.read_csv('ucn2aghphen.txt', sep='  |\t', header=0, engine='python', index_col=False)
-    df_phen = df_phen.drop(['"elem"', '"numer"', '"X"', '"wyksztalcenie"', '"lata"', '"zawod"', '"przychod"',
-                            '"dyscyplina"', '"tryb_pracy"', '"BADANIA_LAB"', '"ABPM"', '"Complior"',
-                            '"HRV"', '"ECHO.serca"', '"Sphigmocor"', '"czestosc"', '"czestosc"', '"nie_pali"',
-                            '"Paczkolata"', '"ciaze"', '"porody"', '"wiek_meno"', '"ile_min"'], axis=1)
+    df_phen = df_phen.drop(['"elem"', '"numer"', '"X"',
+                            '"wyksztalcenie"', '"lata"',
+                            '"zawod"', '"przychod"',
+                            '"dyscyplina"', '"tryb_pracy"',
+                            '"BADANIA_LAB"', '"ABPM"',
+                            '"Complior"', '"HRV"', '"ECHO.serca"',
+                            '"Sphigmocor"', '"czestosc"',
+                            '"czestosc"', '"nie_pali"',
+                            '"Paczkolata"', '"ciaze"',
+                            '"porody"', '"wiek_meno"',
+                            '"ile_min"'], axis=1)
 
     df_phen['"cywilny"'] = df_phen['"cywilny"'].map(map_cywilny)
     df_phen['"praca"'] = df_phen['"praca"'].map(map_praca)

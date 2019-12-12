@@ -3,7 +3,16 @@ import scipy.linalg as la
 from numpy.random import multivariate_normal, uniform, random, randint
 
 
-def data_sim(no_features=50, no_samples=600, delta_factor=1, starts=[0, 10, 20], sizes=[10, 10, 10], random_labels=False):
+def data_sim(
+        no_features=50,
+        no_samples=600,
+        delta_factor=1,
+        starts=[0, 10, 20],
+        sizes=[10, 10, 10],
+        random_labels=False):
+    """Generate simulated data with four classes
+    where given feature ranges condition class belonging"""
+
     mean = uniform(low=-1.0, high=1.0, size=(no_features,))
     eigs = uniform(low=1.0, high=10.0, size=(no_features,))
     s = np.diag(eigs)
